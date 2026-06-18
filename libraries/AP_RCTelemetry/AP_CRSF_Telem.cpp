@@ -1182,11 +1182,22 @@ void AP_CRSF_Telem::calc_device_info() {
     put_be32_ptr(&_telem.ext.info.payload[n], fwver.os_sw_version);   // software id
     n += 4;
 #if OSD_PARAM_ENABLED
-    _telem.ext.info.payload[n] = AP_OSD_ParamScreen::NUM_PARAMS * AP_OSD_NUM_PARAM_SCREENS; // param count
 #if AP_CRSF_SCRIPTING_ENABLED
-    for (ScriptedMenu* m = &scripted_menus; m != nullptr; m = m->next_menu) {
-        _telem.ext.info.payload[n] += m->num_params;
+    if (scripted_menus.next_menu != nullptr) {
+        // OSD params suppressed; report max scripted param ID+1 so ELRS scans far enough
+        uint8_t max_id = 0;
+        for (ScriptedMenu* m = scripted_menus.next_menu; m != nullptr; m = m->next_menu) {
+            uint8_t end_id = m->id + m->num_params;
+            if (end_id > max_id) {
+                max_id = end_id;
+            }
+        }
+        _telem.ext.info.payload[n] = max_id + 1;
+    } else {
+        _telem.ext.info.payload[n] = AP_OSD_ParamScreen::NUM_PARAMS * AP_OSD_NUM_PARAM_SCREENS;
     }
+#else
+    _telem.ext.info.payload[n] = AP_OSD_ParamScreen::NUM_PARAMS * AP_OSD_NUM_PARAM_SCREENS;
 #endif // AP_CRSF_SCRIPTING_ENABLED
     n++;
 #else
@@ -1290,7 +1301,7 @@ void AP_CRSF_Telem::calc_parameter() {
 
 #if AP_CRSF_SCRIPTING_ENABLED
         if (scripted_menus.next_menu != nullptr) {
-            _telem.ext.param_entry.payload[idx++] = PARAMETER_MENU_ID; // root parameter screen ardupilot menu
+            // OSD param menu suppressed when scripted menus are active
             for (ScriptedMenu* m = scripted_menus.next_menu; m != nullptr; m = m->next_menu) {
                 if (m->parent_id == 0) {
                     _telem.ext.param_entry.payload[idx++] = m->id;   // scripted menus
