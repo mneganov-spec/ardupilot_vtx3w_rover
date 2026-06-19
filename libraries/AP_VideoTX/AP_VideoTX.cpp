@@ -114,8 +114,8 @@ AP_VideoTX::PowerLevel AP_VideoTX::_power_levels[VTX_MAX_POWER_LEVELS] = {
     { 1,    250,  24, 16   },
     { 2,    500,  27, 25   },
     { 3,    1000, 30, 40   },
-    { 0x14, 2000, 33, 0xFF },
-    { 0x15, 3000, 35, 0xFF },
+    { 4,    2000, 33, 0xFF },
+    { 5,    3000, 35, 0xFF },
     { 0xFF, 0,    0,  0XFF, PowerActive::Inactive }, // slot reserved for a custom power level
     { 0xFF, 0,    0,  0XFF, PowerActive::Inactive },
     { 0xFF, 0,    0,  0XFF, PowerActive::Inactive }

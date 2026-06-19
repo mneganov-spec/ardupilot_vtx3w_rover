@@ -77,6 +77,9 @@ local function cb_save(command_action)
         param:set_and_save('VTX_POWER',   pwr)
         param:set_and_save('VTX_BAND',    band)
         param:set_and_save('VTX_CHANNEL', chan)
+        -- Reset VTX_FREQ so set_defaults() recalculates it from BAND/CHANNEL
+        -- instead of using the stale AKK startup frequency (5473 MHz) to override them.
+        param:set_and_save('VTX_FREQ',    0)
         -- Schedule reboot 700ms later so flash writes complete and
         -- ELRS receives the COMMAND response before reset.
         reboot_at = millis() + 700
