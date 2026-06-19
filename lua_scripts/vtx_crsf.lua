@@ -62,6 +62,10 @@ end
 -- nonzero = reboot is pending at this millis() timestamp
 local reboot_at = 0
 
+-- Cold-boot safety net: 10 s after startup re-write VTX_FREQ=0 so ArduPilot
+-- recalculates and re-sends SET_FREQUENCY even if the first attempt was ignored.
+local startup_apply_done = false
+
 local function cb_save(command_action)
     if command_action == CRSF_COMMAND_STATUS.START then
         if arming:is_armed() then
@@ -113,6 +117,10 @@ local function loop()
         gcs:send_text(MAV_SEVERITY.INFO, "VTX: rebooting...")
         vehicle:reboot(false)
         return loop, 200  -- won't reach here after reset
+    end
+    if not startup_apply_done and millis() > 10000 then
+        startup_apply_done = true
+        param:set_and_save('VTX_FREQ', 0)  -- force re-derive from BAND/CHANNEL → re-sends SET_FREQUENCY
     end
     local nf, nd = crsf_fn()
     crsf_fn = nf or crsf_fn
