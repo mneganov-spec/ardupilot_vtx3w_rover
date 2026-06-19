@@ -218,11 +218,10 @@ void AP_SmartAudio::update_vtx_params()
             set_operation_mode(mode);
         } else if (_vtx_freq_change_pending) {
             debug("update frequency");
-            if (_vtx_use_set_freq) {
-                set_frequency(vtx.get_configured_frequency_mhz(), false);
-            } else {
-                set_channel(vtx.get_configured_band() * VTX_MAX_CHANNELS + vtx.get_configured_channel());
-            }
+            // Always use frequency mode: AKK TX3000AC (and other modern VTX)
+            // have non-standard internal channel tables, so band*8+channel commands
+            // land on wrong frequencies. Sending MHz directly bypasses the mismatch.
+            set_frequency(vtx.get_configured_frequency_mhz(), false);
         } else if (_vtx_power_change_pending) {
             debug("update power (ver %u)", _protocol_version);
             switch (_protocol_version) {
