@@ -1325,12 +1325,24 @@ void AP_CRSF_Telem::calc_parameter() {
     }
 
 #if AP_CRSF_SCRIPTING_ENABLED
-    // PARAMETER_MENU_ID (ID=1): no response when scripted menus active.
-    // Sending even an empty folder would consume one ELRS param-buffer slot (buffer ~6),
-    // leaving only 3 slots for scripted params instead of 4.
+    // PARAMETER_MENU_ID (ID=1): return empty folder when scripted menus are active.
+    // This lets ELRS move on immediately without a timeout-induced retry storm.
     if (scripted_menus.next_menu != nullptr && _param_request.param_num == PARAMETER_MENU_ID) {
+        _telem.ext.param_entry.header.param_num = PARAMETER_MENU_ID;
+        _telem.ext.param_entry.header.chunks_left = 0;
+        _telem.ext.param_entry.payload[idx++] = 0; // parent folder
+        _telem.ext.param_entry.payload[idx++] = ParameterType::FOLDER;
+        strncpy((char*)&_telem.ext.param_entry.payload[idx], "Parameters",
+                ARRAY_SIZE(_telem.ext.param_entry.payload) - idx - 1);
+        idx += strlen("Parameters");
+        _telem.ext.param_entry.payload[idx++] = 0;
+        _telem.ext.param_entry.payload[idx] = 0xFF; // empty child list
+
+        _telem_size = sizeof(AP_CRSF_Telem::ParameterSettingsEntryHeader) + 1 + idx;
+        _telem_type = AP_CRSF_Protocol::CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY;
         _pending_request.frame_type = 0;
-        return; // ELRS timeout on this ID uses no buffer slot
+        _telem_pending = true;
+        return;
     }
 
     // scripted menu folder request indexed as the set of parameter ids from SCRIPTED_MENU_START_ID
