@@ -1325,22 +1325,12 @@ void AP_CRSF_Telem::calc_parameter() {
     }
 
 #if AP_CRSF_SCRIPTING_ENABLED
-    // PARAMETER_MENU_ID folder request: return empty folder when scripted menus are active
+    // PARAMETER_MENU_ID (ID=1): no response when scripted menus active.
+    // Sending even an empty folder would consume one ELRS param-buffer slot (buffer ~6),
+    // leaving only 3 slots for scripted params instead of 4.
     if (scripted_menus.next_menu != nullptr && _param_request.param_num == PARAMETER_MENU_ID) {
-        _telem.ext.param_entry.header.param_num = PARAMETER_MENU_ID;
-        _telem.ext.param_entry.header.chunks_left = 0;
-        _telem.ext.param_entry.payload[idx++] = 0; // parent folder
-        _telem.ext.param_entry.payload[idx++] = ParameterType::FOLDER; // type
-        strncpy((char*)&_telem.ext.param_entry.payload[idx], "Parameters", ARRAY_SIZE(_telem.ext.param_entry.payload) - idx - 1);
-        idx += strlen("Parameters");
-        _telem.ext.param_entry.payload[idx++] = 0; // null terminator
-        _telem.ext.param_entry.payload[idx] = 0xFF; // empty child list - OSD params suppressed
-
-        _telem_size = sizeof(AP_CRSF_Telem::ParameterSettingsEntryHeader) + 1 + idx;
-        _telem_type = AP_CRSF_Protocol::CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY;
         _pending_request.frame_type = 0;
-        _telem_pending = true;
-        return;
+        return; // ELRS timeout on this ID uses no buffer slot
     }
 
     // scripted menu folder request indexed as the set of parameter ids from SCRIPTED_MENU_START_ID
@@ -1524,7 +1514,7 @@ bool AP_CRSF_Telem::calc_scripted_parameter()
                 _telem.ext.param_entry.payload[idx++] = spw.param->parent_id; // parent folder only in first chunk
             }
 
-            const uint8_t chunk_len = _telem.ext.param_entry.header.chunks_left > 0 ? CHUNK_SIZE : (spw.param->length + 1) % CHUNK_SIZE;
+            const uint8_t chunk_len = _telem.ext.param_entry.header.chunks_left > 0 ? CHUNK_SIZE : spw.param->length - (chunks - 1) * CHUNK_SIZE;
             memcpy((uint8_t*)&_telem.ext.param_entry.payload[idx],
                     &spw.param->data[spw.param_chunk * CHUNK_SIZE], chunk_len);
             idx += chunk_len;
