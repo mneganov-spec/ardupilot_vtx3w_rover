@@ -1325,21 +1325,16 @@ void AP_CRSF_Telem::calc_parameter() {
     }
 
 #if AP_CRSF_SCRIPTING_ENABLED
-    // root folder request
+    // PARAMETER_MENU_ID folder request: return empty folder when scripted menus are active
     if (scripted_menus.next_menu != nullptr && _param_request.param_num == PARAMETER_MENU_ID) {
         _telem.ext.param_entry.header.param_num = PARAMETER_MENU_ID;
         _telem.ext.param_entry.header.chunks_left = 0;
         _telem.ext.param_entry.payload[idx++] = 0; // parent folder
         _telem.ext.param_entry.payload[idx++] = ParameterType::FOLDER; // type
-        // name
         strncpy((char*)&_telem.ext.param_entry.payload[idx], "Parameters", ARRAY_SIZE(_telem.ext.param_entry.payload) - idx - 1);
         idx += strlen("Parameters");
         _telem.ext.param_entry.payload[idx++] = 0; // null terminator
-        // write out all of the ids we are going to send
-        for (uint8_t i = 0; i < AP_OSD_ParamScreen::NUM_PARAMS * AP_OSD_NUM_PARAM_SCREENS; i++) {
-            _telem.ext.param_entry.payload[idx++] = PARAMETER_MENU_ID + i + 1;
-        }
-        _telem.ext.param_entry.payload[idx] = 0xFF; // terminator
+        _telem.ext.param_entry.payload[idx] = 0xFF; // empty child list - OSD params suppressed
 
         _telem_size = sizeof(AP_CRSF_Telem::ParameterSettingsEntryHeader) + 1 + idx;
         _telem_type = AP_CRSF_Protocol::CRSF_FRAMETYPE_PARAMETER_SETTINGS_ENTRY;
@@ -1384,6 +1379,12 @@ void AP_CRSF_Telem::calc_parameter() {
     if (osd == nullptr) {
         return;
     }
+
+#if AP_CRSF_SCRIPTING_ENABLED
+    if (scripted_menus.next_menu != nullptr) {
+        return; // suppress OSD param responses when scripted menus are active
+    }
+#endif
 
     AP_OSD_ParamSetting* setting = osd->get_setting((_param_request.param_num - (PARAMETER_MENU_ID + 1)) / AP_OSD_ParamScreen::NUM_PARAMS,
         (_param_request.param_num - (PARAMETER_MENU_ID + 1)) % AP_OSD_ParamScreen::NUM_PARAMS);

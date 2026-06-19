@@ -177,7 +177,7 @@ public:
     const static uint8_t MAX_SCRIPTED_PARAMETERS = 255U;
     const static uint8_t MAX_SCRIPTED_PARAMETER_SIZE = 255U;
     const static uint8_t MAX_SCRIPTED_MENU_NAME_LEN = 16;
-    const static uint8_t SCRIPTED_MENU_START_ID = AP_OSD_ParamScreen::NUM_PARAMS * AP_OSD_NUM_PARAM_SCREENS + 2;
+    const static uint8_t SCRIPTED_MENU_START_ID = 2; // start immediately after root(0) and PARAMETER_MENU_ID(1)
 
     // 8-bit parameter ids must be unique within the whole menu structure
     // each parameter has an id, length and packed data
