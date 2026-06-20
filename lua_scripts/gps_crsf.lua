@@ -6,6 +6,8 @@
 -- Dynamic update mechanism: crsf_helper stores a Lua reference to each item_def table.
 -- Updating item.info in our loop is picked up on the next PARAMETER_READ from ELRS.
 
+gcs:send_text(6, "GPS CRSF: loading...")
+
 local crsf_helper = require('crsf_helper')
 
 local FIX_NAMES = {
@@ -41,6 +43,15 @@ local menu_definition = {
 
 local crsf_fn
 local function loop()
+    if crsf_fn == nil then
+        -- register_menu failed; retry once, then give up
+        gcs:send_text(3, "GPS CRSF: menu reg failed, retrying")
+        crsf_fn = crsf_helper.register_menu(menu_definition)
+        if crsf_fn == nil then
+            gcs:send_text(3, "GPS CRSF: giving up")
+            return -- stop rescheduling
+        end
+    end
     update_gps()
     local nf, nd = crsf_fn()
     crsf_fn = nf or crsf_fn
@@ -50,4 +61,10 @@ end
 local crsf_delay
 crsf_fn, crsf_delay = crsf_helper.register_menu(menu_definition)
 
+if crsf_fn == nil then
+    gcs:send_text(3, "GPS CRSF: register_menu returned nil, will retry in loop")
+    return loop, 5000  -- retry after 5s
+end
+
+gcs:send_text(6, "GPS CRSF: menu registered OK")
 return loop, crsf_delay
