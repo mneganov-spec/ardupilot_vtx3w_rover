@@ -2018,7 +2018,10 @@ AP_CRSF_Telem::ScriptedMenu* AP_CRSF_Telem::ScriptedMenu::add_menu(const char* m
         return nullptr;
     }
 
-    menu->id = tail->id == 0 ? SCRIPTED_MENU_START_ID : tail->id + MAX_SCRIPTED_MENU_SIZE + 1;
+    // Pack IDs contiguously: use the previous menu's last param ID + 1.
+    // Using MAX_SCRIPTED_MENU_SIZE creates a large gap that causes ELRS to
+    // time out scanning empty IDs before discovering subsequent menus.
+    menu->id = tail->id == 0 ? SCRIPTED_MENU_START_ID : tail->id + tail->num_params + 1;
     tail->next_menu = menu;
 
     // dummy parameter for a submenu
